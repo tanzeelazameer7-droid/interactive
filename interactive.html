@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Interactive Shapes Game - Canvas Light blue</title>
+  <style>
+    body {
+      font-family: 'Arial', sans-serif;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      background: linear-gradient(135deg, #f6a5c0, #f0a0c8);  /* Slightly darker blue background */
+      overflow: hidden;
+      color: black;
+      text-align: center;
+    }
+    h1 {
+      position: absolute;
+      top: 20px;
+      color: #333;
+      font-size: 30px;
+      font-weight: bold;
+      letter-spacing: 2px;
+      text-shadow: 0 0 15px #00d0ff;
+    }
+    .controls {
+      position: absolute;
+      bottom: 30px;
+      font-size: 18px;
+      font-weight: bold;
+    }
+    canvas {
+      border-radius: 15px;
+      box-shadow: 0 0 25px rgba(0, 208, 255, 0.7);
+      background-color: #f7c8d8;  /* Light blue canvas background */
+    }
+    .controls p {
+      margin: 10px 0;
+      color: #333;
+    }
+    .controls span {
+      color: #ff6347;
+    }
+    .shape {
+      cursor: pointer;
+      transition: transform 0.1s ease, box-shadow 0.3s ease;
+    }
+    .shape:hover {
+      transform: scale(1.1);
+      box-shadow: 0 0 15px 5px rgba(0, 208, 255, 0.8);
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Click an object → Move with Keyboard</h1>
+  <canvas id="gameCanvas" width="600" height="400"></canvas>
+  <div class="controls">
+    <p>Use <span>Arrow Keys</span> for selected shape movement</p>
+  </div>
+
+  <script>
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+
+    // Shape Data
+    const circle = { x: 100, y: 100, radius: 40, color: "black", speed: 5, selected: false };
+    const square = { x: 250, y: 100, size: 50, color: "orange", speed: 5, selected: false };
+    const diamond = { x: 400, y: 100, size: 50, color: "grey", speed: 5, selected: false };
+    const hexagon = { x: 550, y: 100, size: 40, color: "purple", speed: 5, selected: false };
+
+    let selectedShape = null;
+
+    // Key Press Interaction: Keep track of which keys are held down
+    window.addEventListener("keydown", (e) => {
+      if (selectedShape) {
+        if (e.key === "ArrowUp") selectedShape.y -= selectedShape.speed;
+        if (e.key === "ArrowDown") selectedShape.y += selectedShape.speed;
+        if (e.key === "ArrowLeft") selectedShape.x -= selectedShape.speed;
+        if (e.key === "ArrowRight") selectedShape.x += selectedShape.speed;
+      }
+    });
+
+    // Check if the mouse is over a shape
+    function isHovered(shape, mouseX, mouseY) {
+      if (shape === circle) {
+        const dist = Math.sqrt((mouseX - shape.x) ** 2 + (mouseY - shape.y) ** 2);
+        return dist < shape.radius;
+      } else if (shape === diamond) {
+        return mouseX > shape.x - shape.size / 2 && mouseX < shape.x + shape.size / 2 &&
+               mouseY > shape.y - shape.size / 2 && mouseY < shape.y + shape.size / 2;
+      } else if (shape === hexagon) {
+        const angle = Math.PI / 3;
+        for (let i = 0; i < 6; i++) {
+          const x1 = shape.x + shape.size * Math.cos(i * angle);
+          const y1 = shape.y + shape.size * Math.sin(i * angle);
+          const x2 = shape.x + shape.size * Math.cos((i + 1) * angle);
+          const y2 = shape.y + shape.size * Math.sin((i + 1) * angle);
+          if (mouseX > Math.min(x1, x2) && mouseX < Math.max(x1, x2) &&
+              mouseY > Math.min(y1, y2) && mouseY < Math.max(y1, y2)) {
+            return true;
+          }
+        }
+      } else {
+        return mouseX > shape.x && mouseX < shape.x + shape.size && mouseY > shape.y && mouseY < shape.y + shape.size;
+      }
+      return false;
+    }
+
+    // Handle mouse click to select a shape
+    canvas.addEventListener("click", function(e) {
+      const rect = canvas.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
+
+      [circle, square, diamond, hexagon].forEach(shape => {
+        if (isHovered(shape, mouseX, mouseY)) {
+          selectedShape = shape;
+          [circle, square, diamond, hexagon].forEach(s => s.selected = false);  // Deselect others
+          shape.selected = true;
+        }
+      });
+    });
+
+    // Function to draw the shapes
+    function drawShape(shape) {
+      ctx.fillStyle = shape.selected ? "#00d0ff" : shape.color;
+      if (shape === circle) {
+        ctx.beginPath();
+        ctx.arc(shape.x, shape.y, shape.radius, 0, Math.PI * 2);
+        ctx.fill();
+      } else if (shape === square) {
+        ctx.fillRect(shape.x, shape.y, shape.size, shape.size);
+      } else if (shape === diamond) {
+        ctx.beginPath();
+        ctx.moveTo(shape.x, shape.y - shape.size / 2);
+        ctx.lineTo(shape.x + shape.size / 2, shape.y);
+        ctx.lineTo(shape.x, shape.y + shape.size / 2);
+        ctx.lineTo(shape.x - shape.size / 2, shape.y);
+        ctx.closePath();
+        ctx.fill();
+      } else if (shape === hexagon) {
+        const angle = Math.PI / 3;
+        ctx.beginPath();
+        for (let i = 0; i < 6; i++) {
+          ctx.lineTo(shape.x + shape.size * Math.cos(i * angle), shape.y + shape.size * Math.sin(i * angle));
+        }
+        ctx.closePath();
+        ctx.fill();
+      }
+    }
+
+    function render() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Draw shapes
+      [circle, square, diamond, hexagon].forEach(shape => drawShape(shape));
+
+      requestAnimationFrame(render);
+    }
+
+    render();
+  </script>
+
+</body>
+</html>
